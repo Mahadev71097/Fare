@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Farewell Message - Mahadev Assistant</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root{
+    --bg1:#0f2027;
+    --bg2:#203a43;
+    --bg3:#2c5364;
+    --accent: #FFD54A;
+    --muted: rgba(255,255,255,0.85);
+  }
+  html,body{height:100%;margin:0;font-family: "Segoe UI", Roboto, Arial, sans-serif;background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));color: #fff;overflow:hidden;}
+  .screen{display:none;height:100vh;width:100vw;align-items:center;justify-content:center;flex-direction:column;padding:24px;box-sizing:border-box;text-align:center;}
+  .active{display:flex;}
+  h1{margin:8px 0;font-weight:600;}
+  p{margin:6px 0;color:var(--muted);}
+  #introText{font-size:1.05rem;white-space:pre-wrap;line-height:1.5;max-width:880px;text-align:left;}
+  input[type="password"]{padding:10px 12px;font-size:1rem;border-radius:8px;border:1px solid rgba(255,255,255,0.12);margin-top:16px;background:rgba(255,255,255,0.02);color:inherit;}
+  button{cursor:pointer;padding:10px 18px;border-radius:8px;border:none;margin:8px;font-weight:600;}
+  .yellow-btn{background:var(--accent);color:#000;}
+  .confirm-btn{background:#ff7b7b;color:#111;}
+  #typingText{font-size:1.05rem;white-space:pre-wrap;line-height:1.6;max-width:900px;text-align:left;}
+  .particle{position:fixed;top:-10px;font-size:12px;color:rgba(255,255,255,0.6);pointer-events:none;user-select:none;}
+  /* subtle fade in */
+  .fade-in{animation:fadeIn .6s ease both;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  /* small responsive */
+  @media(max-width:640px){
+    #introText,#typingText{font-size:0.95rem}
+    button{padding:10px 14px}
+  }
+</style>
+</head>
+<body>
+
+<!-- Page 1: Password Gate (typing intro) -->
+<div id="passwordScreen" class="screen active">
+  <div id="introText" class="fade-in"></div>
+  <input type="password" id="passwordInput" placeholder="Type password here" style="display:none;" />
+  <div>
+    <button id="submitBtn" onclick="checkPassword()" style="display:none;" class="yellow-btn">Submit</button>
+  </div>
+  <p id="errorMsg"></p>
+</div>
+
+<!-- Page 2: First confirmation -->
+<div id="confirmScreen" class="screen">
+  <h1>😏 Are you sure you're cute, Sinchana?</h1>
+  <div>
+    <button class="yellow-btn" onclick="goToConfirm2()">YES</button>
+    <button class="yellow-btn" onclick="goToConfirm2()">YES</button>
+  </div>
+</div>
+
+<!-- Page 3: Second confirmation -->
+<div id="confirmScreen2" class="screen">
+  <h1>😂 Pakka na cute ag edira? 😜😂</h1>
+  <div>
+    <button class="yellow-btn" onclick="goToMain()">YES</button>
+    <button class="yellow-btn" onclick="goToMain()">YES</button>
+  </div>
+</div>
+
+<!-- Page 4: Final farewell -->
+<div id="mainPage" class="screen">
+  <div id="typingText"></div>
+</div>
+
+<!-- audio -->
+<!-- key click sound (typing/backspace) and soothing music (loop) -->
+<audio id="keySound" src="https://www.soundjay.com/mechanical/sounds/keyboard-1.mp3" preload="auto"></audio>
+<audio id="music" src="https://www.bensound.com/bensound-music/bensound-sunny.mp3" preload="auto" loop></audio>
+
+<script>
+/* ---------------------------
+   Visual: floating particles
+   --------------------------- */
+function createParticle(){
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random()*100 + 'vw';
+  p.style.top = '-10px';
+  p.style.opacity = (0.35 + Math.random()*0.6).toFixed(2);
+  p.style.fontSize = (8 + Math.random()*18) + 'px';
+  p.style.transform = 'translateY(0) rotate('+ (Math.random()*60-30) +'deg)';
+  p.innerText = '•';
+  const dur = 5 + Math.random()*6;
+  p.style.transition = `transform ${dur}s linear, top ${dur}s linear, opacity ${dur}s linear`;
+  document.body.appendChild(p);
+  // trigger
+  requestAnimationFrame(()=> {
+    p.style.top = (100 + Math.random()*10) + 'vh';
+    p.style.transform = 'translateY(0) rotate('+ (Math.random()*360) +'deg)';
+    p.style.opacity = 0;
+  });
+  setTimeout(()=> p.remove(), (dur+0.3)*1000);
+}
+setInterval(createParticle, 300);
+
+/* ---------------------------
+   Sounds and helpers
+   --------------------------- */
+const keySound = document.getElementById('keySound');
+const music = document.getElementById('music');
+
+function playKey(){
+  // quick restart for repeated short sound
+  try{
+    keySound.currentTime = 0;
+    keySound.play().catch(()=>{/* autoplay blocked sometimes; will play on interaction */});
+  }catch(e){}
+}
+
+/* ---------------------------
+   Page 1: Intro typing
+   --------------------------- */
+const introLines = [
+  "Hi Sinchana madam, Mahadev sir assistant here.",
+  "Please enter code for this question:",
+  "Are you cute?"
+];
+let introLine = 0, introChar = 0;
+const introEl = document.getElementById('introText');
+
+function typeIntro(){
+  if(introLine < introLines.length){
+    const line = introLines[introLine];
+    if(introChar < line.length){
+      introEl.innerHTML += line.charAt(introChar);
+      playKey();
+      introChar++;
+      setTimeout(typeIntro, 45 + Math.random()*30); // slightly humanized
+    } else {
+      introEl.innerHTML += "\n";
+      introLine++;
+      introChar = 0;
+      setTimeout(typeIntro, 350);
+    }
+  } else {
+    // show input and button
+    document.getElementById('passwordInput').style.display = 'inline-block';
+    document.getElementById('submitBtn').style.display = 'inline-block';
+    // focus for mobile/desktop
+    setTimeout(()=> document.getElementById('passwordInput').focus(), 200);
+  }
+}
+typeIntro();
+
+/* Password validation */
+function checkPassword(){
+  const v = (document.getElementById('passwordInput').value || '').trim().toLowerCase();
+  if(v === "yes i'm cute" || v === "yes i\'m cute" || v === "yes im cute" || v === "yes i'm cute"){
+    // go to confirm
+    document.getElementById('passwordScreen').classList.remove('active');
+    document.getElementById('confirmScreen').classList.add('active');
+    document.getElementById('errorMsg').textContent = '';
+  } else {
+    document.getElementById('errorMsg').textContent = "Arre Sinchana madam, wrong code! Try again 😂";
+    playKey();
+  }
+}
+
+/* navigation */
+function goToConfirm2(){
+  document.getElementById('confirmScreen').classList.remove('active');
+  document.getElementById('confirmScreen2').classList.add('active');
+}
+function goToMain(){
+  document.getElementById('confirmScreen2').classList.remove('active');
+  document.getElementById('mainPage').classList.add('active');
+  // start music and typing
+  music.play().catch(()=>{/* may require user gesture */});
+  startFarewellSequence();
+}
+
+/* ---------------------------
+   Final farewell typing logic
+   - tease -> backspace -> main lines
+   - inject some funny mistakes with "oops" and backspace
+   --------------------------- */
+const typingEl = document.getElementById('typingText');
+
+/* tease and main content */
+const teaseLine = "Actually nimna tease madtide neev cute edira antha... actually cute edira 😄";
+
+/* main lines (20+ lines). Keep them expressive, personal and emotional. */
+const farewellLines = [
+  "Hello madam heg edira yal edira, thanks open madidake... nim resgsakke neev cute ha antha keltide... aste bedi neev cute he madam",
+  "Ninna office alli sigida dina nanaginta special enu illa.",
+  "Nee kotta support, smile, mattu jokes yenella nanaginta unforgettable.",
+  "Sometimes ninna kelasa nodidaga nanag hogi coffee kodbeku anisutittu ☕.",
+  "Ninna jothe gossip madiddu enu fun anisutittu.",
+  "Team calls nalli ninna one liner jokes enu different and always brightened the day.",
+  "Work pressure idru ninna presence stress disappear agtittu.",
+  "Lunch time ninna seat hatra hogi time pass madiddu nanag olle habit aaytu.",
+  "Nee helida 'don't worry' words office life ge relax kodsiddu.",
+  "Nee office leave madid mele office empty anisutte anta gottu.",
+  "Nee bandre office atmosphere fresh agutte, it's true.",
+  "Nee nange office nalli kade last bench friend tara iriddiya.",
+  "Nee kelasa madodu kuda nange inspiration, seriously.",
+  "Office events alli neev photo ge pose madodu confidence na torisiddu.",
+  "Nee sigida friendship office end agi hogalla — adu continue agtade.",
+  "Nee iruvarigu naanu ninna support madtini always.",
+  "Bond office end alli stop agalla, adu grow agutte and stay strong.",
+  "Nee enadru beku antha helidre, nan hatra ninna place ide.",
+  "Life busy aadru kuda, matadoke time togona — promise.",
+  "Final line... ninna friendship life long cherish madtini 💖.",
+  "This is not goodbye, it's just 'see you soon' — our bond will only grow."
+];
+
+/* mistakes mapping:
+   key = lineIndex, value = { pos: indexInLineWhereMistakeStarts, wrong: 'wrngword', correct: 'correctword' }
+   We'll show the wrong word, then type " oops", pause, backspace wrong+oops, then type correct.
+*/
+const mistakes = {
+  3: { pos: 31, wrong: "dayy", correct: "day" },        // line 4 (index 3)
+  10: { pos: 6, wrong: "feelng", correct: "feeling" },  // line 11 (index 10)
+  17: { pos: 28, wrong: "suppport", correct: "support" } // line 18 (index 17)
+};
+
+let phase = "tease"; // tease -> backspace -> main
+let dtext = ""; // displayed text
+let tIndex = 0; // for tease char position OR for main: line index
+let cIndex = 0; // char index within current string
+
+function startFarewellSequence(){
+  phase = "tease";
+  dtext = "";
+  tIndex = 0;
+  cIndex = 0;
+  typingEl.textContent = "";
+  setTimeout(farewellStep, 200);
+}
+
+function farewellStep(){
+  if(phase === "tease"){
+    if(tIndex < teaseLine.length){
+      dtext += teaseLine.charAt(tIndex);
+      typingEl.textContent = dtext;
+      playKey();
+      tIndex++;
+      setTimeout(farewellStep, 50);
+    } else {
+      // finished tease, wait then backspace
+      phase = "backspaceTease";
+      setTimeout(farewellStep, 700);
+    }
+  }
+  else if(phase === "backspaceTease"){
+    if(dtext.length > 0){
+      // remove last char
+      dtext = dtext.slice(0, -1);
+      typingEl.textContent = dtext;
+      playKey();
+      setTimeout(farewellStep, 28);
+    } else {
+      // move to main typing
+      phase = "main";
+      tIndex = 0;
+      cIndex = 0;
+      // short pause before main
+      setTimeout(farewellStep, 400);
+    }
+  }
+  else if(phase === "main"){
+    if(tIndex < farewellLines.length){
+      const line = farewellLines[tIndex];
+      // check if there's a mistake defined on this line AND we are at the mistake's pos
+      const m = mistakes[tIndex];
+      if(m && cIndex === m.pos){
+        // first type wrong word
+        phase = "mistake_wrong";
+        mistakeState = { lineIndex: tIndex, charIndex: 0, wrong: m.wrong, correct: m.correct };
+        setTimeout(farewellStep, 80);
+        return;
+      }
+      if(cIndex < line.length){
+        dtext += line.charAt(cIndex);
+        typingEl.textContent = dtext;
+        playKey();
+        cIndex++;
+        // a small randomization so it feels human
+        setTimeout(farewellStep, 40 + Math.random()*40);
+      } else {
+        // finish line -> newline
+        dtext += "\n";
+        typingEl.textContent = dtext;
+        tIndex++;
+        cIndex = 0;
+        setTimeout(farewellStep, 320);
+      }
+    } else {
+      // finished all lines - final emotional pause + maybe highlight?
+      phase = "done";
+      // small emotional ending pause
+      setTimeout(()=> {
+        // you can add any final accent here (like show heart) — but we'll just end typing
+      }, 500);
+    }
+  }
+  else if(phase === "mistake_wrong"){
+    // type wrong word
+    const ms = mistakeState;
+    if(ms.charIndex < ms.wrong.length){
+      dtext += ms.wrong.charAt(ms.charIndex);
+      typingEl.textContent = dtext;
+      playKey();
+      ms.charIndex++;
+      setTimeout(farewellStep, 60 + Math.random()*30);
+    } else {
+      // after wrong word typed, type " oops"
+      dtext += " oops";
+      typingEl.textContent = dtext;
+      playKey();
+      phase = "mistake_erase";
+      // short pause to let 'oops' be seen
+      setTimeout(farewellStep, 700);
+    }
+  }
+  else if(phase === "mistake_erase"){
+    // erase the " oops" + wrong word
+    const ms = mistakeState;
+    const totalToErase = ms.wrong.length + 5; // wrong + " oops" (including space)
+    if(totalToErase > 0){
+      // perform progressive erasing
+      dtext = dtext.slice(0, -1);
+      typingEl.textContent = dtext;
+      playKey();
+      // count how many erased by comparing current char idx
+      ms.erased = (ms.erased || 0) + 1;
+      if(ms.erased < totalToErase){
+        setTimeout(farewellStep, 40);
+      } else {
+        // finished erasing -> go to type corrected characters
+        phase = "mistake_correct";
+        ms.charIndex = 0;
+        setTimeout(farewellStep, 180);
+      }
+    } else {
+      // fallback
+      phase = "mistake_correct";
+      setTimeout(farewellStep, 180);
+    }
+  }
+  else if(phase === "mistake_correct"){
+    const ms = mistakeState;
+    if(ms.charIndex < ms.correct.length){
+      dtext += ms.correct.charAt(ms.charIndex);
+      typingEl.textContent = dtext;
+      playKey();
+      ms.charIndex++;
+      setTimeout(farewellStep, 60 + Math.random()*30);
+    } else {
+      // correction done — update main indices so normal typing continues from after the corrected word
+      // We need to advance the cIndex in the original line by the length of the wrong word (effectively we already skipped those chars)
+      // So set cIndex = mistake.pos + correct.length
+      cIndex = mistakes[ms.lineIndex].pos + mistakes[ms.lineIndex].correct.length;
+      // clear mistakeState and return to main
+      delete window.mistakeState;
+      phase = "main";
+      // small pause
+      setTimeout(farewellStep, 180);
+    }
+  }
+}
+
+/* small safety: if user interacts before sounds allowed, unlock playback */
+document.body.addEventListener('click', function unlockAudioOnce(){
+  try{ keySound.play().catch(()=>{}); music.play().catch(()=>{}); }catch(e){}
+  document.body.removeEventListener('click', unlockAudioOnce);
+});
+
+/* end */
+</script>
+
+</body>
+</html>
